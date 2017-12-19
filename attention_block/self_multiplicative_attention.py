@@ -6,7 +6,7 @@ from keras import initializers
 from keras.engine.topology import Layer
 
 
-class AdditiveSimilarity3DLayer(Layer):
+class MultiplicativeSimilarity3DLayer(Layer):
     """加性相似度,最经典的注意力相似度机制,如果是在self attention中\
 则该层有一个dim为Key_time_step的向量和一个(Key_dim,Key_time_step)的矩阵作为用于训练的参数
     
