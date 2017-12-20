@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from keras.layers import
 from keras import backend as K
 from keras import initializers
@@ -10,7 +10,8 @@ class SelfAttention3DLayer(Layer):
     """self-attention的特点是自己为输入,输出也是一个和自己一样shape的张量.
     """
 
-    def __init__(self, similarity="additive",
+    def __init__(self, similarity="additive", *,
+                 kernel_size=None,
                  kernel_initializer='glorot_uniform',
                  wk_kernel_initializer='glorot_uniform',
                  **kwargs):
@@ -25,7 +26,13 @@ class SelfAttention3DLayer(Layer):
                 '"multiplicative","dot_product","additive",'
                 'and you can input a function as the similarity function!'
             )
-
+        if (isinstance(
+            kernel_size,
+                Sequence) and len(kernel_size) == 2) or kernel_size is None:
+            self.kernel_size = kernel_size
+        else:
+            raise ValueError(
+                'kernel_size must be a Sequence with 2 int element')
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.wk_kernel_initializer = initializers.get(
             wk_kernel_initializer)
@@ -33,29 +40,34 @@ class SelfAttention3DLayer(Layer):
 
     def build(self, input_shape):
         if len(input_shape) != 3:
-            raise ValueError('A self attention layer should be called '
+            raise ValueError('A additive weight layer should be called '
                              'by a (batch,time_step,dim)3D inputs.'
                              'Got ' + str(input_shape) + ' inputs.')
+        time = input_shape[-2]
+        dim = input_shape[-1]
         if self.similarity == "additive":
-            self.kernel = self.add_weight(
-                name='kernel',
-                shape=(
-                    input_shape[-2], input_shape[-2]),
-                initializer=self.kernel_initializer,
-                trainable=True)
+
+            if self.kernel_size is None:
+                self.kernel_size = (time, time)
+            r, d_a = self.kernel_size
+            self.kernel = self.add_weight(name='kernel',
+                                          shape=(r, d_a),
+                                          initializer=self.kernel_initializer,
+                                          trainable=True)
+
             self.wk_kernel = self.add_weight(
                 name='wk_kernel',
-                shape=(
-                    input_shape[-1], input_shape[-2]),
+                shape=(d_a, dim),
                 initializer=self.wk_kernel_initializer,
                 trainable=True)
         elif self.similarity == "multiplicative":
-            self.kernel = self.add_weight(
-                name='kernel',
-                shape=(
-                    input_shape[-1], input_shape[-1]),
-                initializer=self.kernel_initializer,
-                trainable=True)
+            self.kernel = self.add_weight(name='kernel',
+                                          shape=(
+                                              dim, dim),
+                                          initializer=self.kernel_initializer,
+                                          trainable=True)
+        else:
+            pass
 
         # Be sure to call this somewhere!
         super().build(input_shape)
@@ -64,10 +76,11 @@ class SelfAttention3DLayer(Layer):
         """点乘相似度,在google的attention is all you need 中看到的.\
 很迷,没有要训练的矩阵,直接转置点乘
 
-        .. math::  Similarity(Source) =  Source^T\cdot W \cdot Source 
+        .. math::  Similarity(Source) =  Source\cdot W \cdot Source^T
         """
         Source_t = K.permute_dimensions(Source, (0, 2, 1))
-        sim = K.dot(K.dot(Source, self.kernel), Source_t)
+        s = K.dot(Source, self.kernel)
+        sim = K.batch_dot(s, Source_t)
         return sim
 
     def dot_product(self, Source):
@@ -77,7 +90,7 @@ class SelfAttention3DLayer(Layer):
         .. math::  Similarity(Source) = \frac{Source^T\cdot Source}{\sqrt{d_k}}
         """
         Source_t = K.permute_dimensions(Source, (0, 2, 1))
-        sim = K.dot(Source, Source_t) / K.sqrt(Source.shape[-1])
+        sim = K.batch_dot(Source, Source_t)
         return sim
 
     def additive(self, Source):
@@ -85,10 +98,13 @@ class SelfAttention3DLayer(Layer):
         加性相似度,最经典的注意力相似度机制,如果是在self attention中\
 则该层有一个dim为Key_time_step的向量和一个(Key_dim,Key_time_step)的矩阵作为用于训练的参数
 
-        .. math::  Similarity(Source) = V \cdot tanh(W_k\cdot Source)
+        .. math::  Similarity(Source) = V \cdot tanh(W_k\cdot Source^T)
         """
-        f_att = K.dot(Source, self.wk_kernel)
-        sim = K.dot(K.tanh(f_att), self.kernel)
+        Source_t = K.permute_dimensions(Source, (0, 2, 1))
+        f_att = K.dot(self.wk_kernel, Source_t)
+        f_att = K.permute_dimensions(f_att, (1, 0, 2))
+        sim = K.dot(self.kernel, K.tanh(f_att))
+        sim = K.permute_dimensions(sim, (1, 0, 2))
         return sim
 
     def call(self, inputs):
@@ -102,8 +118,7 @@ class SelfAttention3DLayer(Layer):
         else:
             sim = getattr(self, self.similarity)(Source)
         sm = activations.softmax(sim)
-        sm_t = K.permute_dimensions(sm, (0, 2, 1))
-        result = K.batch_dot(sm_t, Source)
+        result = K.batch_dot(sm, Source)
         return result
 
     def compute_output_shape(self, input_shape):
