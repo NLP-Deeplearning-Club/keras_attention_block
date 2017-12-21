@@ -137,7 +137,7 @@ class SelfAttention1DLayer(Layer):
         return sim
 
     def _call_attention(self, Source):
-        """self-attention就是通过相似度函数计算得的相似矩阵过softmax后与自身点乘得到
+        r"""self-attention就是通过相似度函数计算得的相似矩阵过softmax后与自身点乘得到
 
         .. math::  A = Softmax(Similarity(Source))
         .. math::  C = A \cdot Source
@@ -157,6 +157,16 @@ class SelfAttention1DLayer(Layer):
 
     def compute_output_shape(self, input_shape):
         return (input_shape[0], self.kernel_size[0], self.dim)
+
+    def get_config(self):
+        config = {
+            'similarity': self.similarity,
+            'kernel_size': self.kernel_size,
+            'kernel_initializer': self.kernel_initializer,
+            'wk_kernel_initializer': self.wk_kernel_initializer
+        }
+        base_config = super().get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 class SelfAttention2DLayer(SelfAttention1DLayer):
@@ -220,7 +230,7 @@ class SelfAttention2DLayer(SelfAttention1DLayer):
         super(SelfAttention1DLayer, self).build(input_shape)
 
     def call(self, inputs):
-        """self-attention就是通过相似度函数计算得的相似矩阵过softmax后与自身点乘得到
+        r"""self-attention就是通过相似度函数计算得的相似矩阵过softmax后与自身点乘得到
 
         .. math::  A = Softmax(Similarity(Source))
         .. math::  C = A \cdot Source
@@ -243,6 +253,13 @@ class SelfAttention2DLayer(SelfAttention1DLayer):
     def compute_output_shape(self, input_shape):
         return (input_shape[0],  self.output_size[0],
                 self.output_size[1], self.dim)
+
+    def get_config(self):
+        config = {
+            "output_size": self.output_size
+        }
+        base_config = super().get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 __all__ = ["SelfAttention1DLayer", "SelfAttention2DLayer"]
