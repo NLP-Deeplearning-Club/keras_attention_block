@@ -193,6 +193,7 @@ class SelfAttention2DLayer(SelfAttention1DLayer):
                  wk_kernel_initializer='glorot_uniform',
                  **kwargs):
         self.output_size = output_size
+        self.d_a = d_a
         if similarity == "additive":
             if d_a is not None and output_size is not None and len(
                     output_size) == 2:
@@ -251,12 +252,13 @@ class SelfAttention2DLayer(SelfAttention1DLayer):
         return result
 
     def compute_output_shape(self, input_shape):
-        return (input_shape[0],  self.output_size[0],
+        return (input_shape[0], self.output_size[0],
                 self.output_size[1], self.dim)
 
     def get_config(self):
         config = {
-            "output_size": self.output_size
+            "output_size": self.output_size,
+            "d_a": self.d_a
         }
         base_config = super().get_config()
         return dict(list(base_config.items()) + list(config.items()))
