@@ -1,0 +1,620 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>keras_attention_block package &#8212; keras_attention_block  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to keras_attention_block’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="keras-attention-block-package">
+<h1>keras_attention_block package<a class="headerlink" href="#keras-attention-block-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-keras_attention_block.attention">
+<span id="keras-attention-block-attention-module"></span><h2>keras_attention_block.attention module<a class="headerlink" href="#module-keras_attention_block.attention" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="keras_attention_block.attention.Attention1DLayer">
+<em class="property">class </em><code class="descclassname">keras_attention_block.attention.</code><code class="descname">Attention1DLayer</code><span class="sig-paren">(</span><em>similarity='additive'</em>, <em>kernel_initializer='glorot_uniform'</em>, <em>wk_kernel_initializer='glorot_uniform'</em>, <em>wq_kernel_initializer='glorot_uniform'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention1DLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">keras.engine.topology.Layer</span></code></p>
+<p>attention1d的特点是自己为输入的Key和Value,输出的是Query的timestep为长度,dim一致的张量</p>
+<dl class="attribute">
+<dt id="keras_attention_block.attention.Attention1DLayer.similarity">
+<code class="descname">similarity</code><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer.similarity" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Union[Callable,str]</em> –</p>
+<ul class="simple">
+<li>指定使用的相似度计算函数,目前可选的有        加性相似度(additive),乘性相似度(multiplicative),点乘相似度(dot_product),        当然也可以自己写一个,只要最终输出的是一个(?,output,input_timestep)的</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.attention.Attention1DLayer.kernel_initializer">
+<code class="descname">kernel_initializer</code><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer.kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>权重V的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.attention.Attention1DLayer.wk_kernel_initializer">
+<code class="descname">wk_kernel_initializer</code><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer.wk_kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>权重W_k的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.attention.Attention1DLayer.wq_kernel_initializer">
+<code class="descname">wq_kernel_initializer</code><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer.wq_kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>权重W_q的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.attention.Attention1DLayer.additive">
+<code class="descname">additive</code><span class="sig-paren">(</span><em>Source</em>, <em>Query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention1DLayer.additive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer.additive" title="Permalink to this definition">¶</a></dt>
+<dd><p>加性相似度,最经典的注意力相似度机制,如果是在self attention中则该层有3个权重矩阵形状为W_k(time_q,time_k)和W_q(time_q,time_q)以及V(dim,time_k)</p>
+<div class="math">
+\[Similarity(Source)=tanh(W_k\cdot Source+W_q\cdot Query)\cdot V\]</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.attention.Attention1DLayer.build">
+<code class="descname">build</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention1DLayer.build"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer.build" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.attention.Attention1DLayer.call">
+<code class="descname">call</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention1DLayer.call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer.call" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.attention.Attention1DLayer.compute_output_shape">
+<code class="descname">compute_output_shape</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention1DLayer.compute_output_shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer.compute_output_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.attention.Attention1DLayer.dot_product">
+<code class="descname">dot_product</code><span class="sig-paren">(</span><em>Source</em>, <em>Query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention1DLayer.dot_product"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer.dot_product" title="Permalink to this definition">¶</a></dt>
+<dd><p>点乘相似度,在google的attention is all you need 中看到的.很迷,没有要训练的矩阵,直接转置点乘</p>
+<div class="math">
+\[Similarity(Source,Query)=\frac{Source^T\cdot Query}{\sqrt{d_k}}\]</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.attention.Attention1DLayer.get_config">
+<code class="descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention1DLayer.get_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer.get_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.attention.Attention1DLayer.multiplicative">
+<code class="descname">multiplicative</code><span class="sig-paren">(</span><em>Source</em>, <em>Query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention1DLayer.multiplicative"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention1DLayer.multiplicative" title="Permalink to this definition">¶</a></dt>
+<dd><p>乘性相似度,其中的权重矩阵形状为[dim,dim]输出的固定为与原输入一样形状</p>
+<div class="math">
+\[Similarity(Source,Query) = Query \cdot W \cdot Source^T\]</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="keras_attention_block.attention.Attention2DLayer">
+<em class="property">class </em><code class="descclassname">keras_attention_block.attention.</code><code class="descname">Attention2DLayer</code><span class="sig-paren">(</span><em>output_size=None</em>, <em>similarity='additive'</em>, <em>*</em>, <em>kernel_initializer='glorot_uniform'</em>, <em>wk_kernel_initializer='glorot_uniform'</em>, <em>wq_kernel_initializer='glorot_uniform'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention2DLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention2DLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#keras_attention_block.attention.Attention1DLayer" title="keras_attention_block.attention.Attention1DLayer"><code class="xref py py-class docutils literal"><span class="pre">keras_attention_block.attention.Attention1DLayer</span></code></a></p>
+<p>attention的特点是自己为输入,输出也是一个和自己一样shape的张量.
+2d的attention是为2dcnn设计的,其原理就是将4维的中间两维压缩为一维,之后输出的时候再解压缩出来.</p>
+<dl class="attribute">
+<dt id="keras_attention_block.attention.Attention2DLayer.output_size">
+<code class="descname">output_size</code><a class="headerlink" href="#keras_attention_block.attention.Attention2DLayer.output_size" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>tuple[int,int]</em> –</p>
+<ul class="simple">
+<li>指定输出的形状,如果是加性相似度(additive),        则必须指定,且可以随意指定,如果是其他则可以不指定,那就是原样形状输出,        如果指定的话则必须积与原形状第1,2纬度的积相等</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.attention.Attention2DLayer.similarity">
+<code class="descname">similarity</code><a class="headerlink" href="#keras_attention_block.attention.Attention2DLayer.similarity" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Union[Callable,str]</em> –</p>
+<ul class="simple">
+<li>指定使用的相似度计算函数,目前可选的有        加性相似度(additive),乘性相似度(multiplicative),点乘相似度(dot_product),        当然也可以自己写一个,只要最终输出的是一个(?,output,input_timestep)的        用于指定第一个权重的形状,各维的意义[输出的纬度,第二个权重矩阵的第一个纬度]</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.attention.Attention2DLayer.kernel_initializer">
+<code class="descname">kernel_initializer</code><a class="headerlink" href="#keras_attention_block.attention.Attention2DLayer.kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>第一个权重的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.attention.Attention2DLayer.wk_kernel_initializer">
+<code class="descname">wk_kernel_initializer</code><a class="headerlink" href="#keras_attention_block.attention.Attention2DLayer.wk_kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>第二个权重的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.attention.Attention2DLayer.wq_kernel_initializer">
+<code class="descname">wq_kernel_initializer</code><a class="headerlink" href="#keras_attention_block.attention.Attention2DLayer.wq_kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>权重W_q的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.attention.Attention2DLayer.build">
+<code class="descname">build</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention2DLayer.build"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention2DLayer.build" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.attention.Attention2DLayer.call">
+<code class="descname">call</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention2DLayer.call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention2DLayer.call" title="Permalink to this definition">¶</a></dt>
+<dd><p>self-attention就是通过相似度函数计算得的相似矩阵过softmax后与自身点乘得到</p>
+<div class="math">
+\[A = Softmax(Similarity(Source))\]</div>
+<div class="math">
+\[C = A \cdot Source\]</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.attention.Attention2DLayer.compute_output_shape">
+<code class="descname">compute_output_shape</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention2DLayer.compute_output_shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention2DLayer.compute_output_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.attention.Attention2DLayer.get_config">
+<code class="descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/attention.html#Attention2DLayer.get_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.attention.Attention2DLayer.get_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-keras_attention_block.key_value_attention3d">
+<span id="keras-attention-block-key-value-attention3d-module"></span><h2>keras_attention_block.key_value_attention3d module<a class="headerlink" href="#module-keras_attention_block.key_value_attention3d" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer">
+<em class="property">class </em><code class="descclassname">keras_attention_block.key_value_attention3d.</code><code class="descname">KeyValueAttention1DLayer</code><span class="sig-paren">(</span><em>similarity='additive'</em>, <em>kernel_initializer='glorot_uniform'</em>, <em>wk_kernel_initializer='glorot_uniform'</em>, <em>wq_kernel_initializer='glorot_uniform'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention1DLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">keras.engine.topology.Layer</span></code></p>
+<p>key-value-attention1d的特点是输入的Key和Value为成对的数据Query一般为外部数据,Key和Query有一致的dim,和Value有一致的timestep,
+输出的是Query的timestep,Value的dim形状的张量</p>
+<dl class="attribute">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.similarity">
+<code class="descname">similarity</code><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.similarity" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Union[Callable,str]</em> –</p>
+<ul class="simple">
+<li>指定使用的相似度计算函数,目前可选的有        加性相似度(additive),乘性相似度(multiplicative),点乘相似度(dot_product),        当然也可以自己写一个,只要最终输出的是一个(?,output,input_timestep)的</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.kernel_initializer">
+<code class="descname">kernel_initializer</code><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>权重V的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.wk_kernel_initializer">
+<code class="descname">wk_kernel_initializer</code><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.wk_kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><ul class="simple">
+<li>权重W_k的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.wq_kernel_initializer">
+<code class="descname">wq_kernel_initializer</code><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.wq_kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><ul class="simple">
+<li>权重W_q的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.additive">
+<code class="descname">additive</code><span class="sig-paren">(</span><em>Key</em>, <em>Query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention1DLayer.additive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.additive" title="Permalink to this definition">¶</a></dt>
+<dd><p>加性相似度,最经典的注意力相似度机制,如果是在self attention中则该层有3个权重矩阵形状为W_k(time_q,time_k)和W_q(time_q,time_q)以及V(dim,time_k)</p>
+<div class="math">
+\[Similarity(Key)=tanh(W_k\cdot Key+W_q\cdot Query)\cdot V\]</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.build">
+<code class="descname">build</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention1DLayer.build"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.build" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.call">
+<code class="descname">call</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention1DLayer.call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.call" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.compute_output_shape">
+<code class="descname">compute_output_shape</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention1DLayer.compute_output_shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.compute_output_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.dot_product">
+<code class="descname">dot_product</code><span class="sig-paren">(</span><em>Key</em>, <em>Query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention1DLayer.dot_product"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.dot_product" title="Permalink to this definition">¶</a></dt>
+<dd><p>点乘相似度,在google的attention is all you need 中看到的.很迷,没有要训练的矩阵,直接转置点乘</p>
+<div class="math">
+\[Similarity(Key,Query) = \frac{Key^T\cdot Query}{\sqrt{d_k}}\]</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.get_config">
+<code class="descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention1DLayer.get_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.get_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.multiplicative">
+<code class="descname">multiplicative</code><span class="sig-paren">(</span><em>Key</em>, <em>Query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention1DLayer.multiplicative"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer.multiplicative" title="Permalink to this definition">¶</a></dt>
+<dd><p>乘性相似度,其中的权重矩阵形状为[dim,dim]输出的固定为与原输入一样形状</p>
+<div class="math">
+\[Similarity(Key,Query) = Query \cdot W \cdot Source^T\]</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer">
+<em class="property">class </em><code class="descclassname">keras_attention_block.key_value_attention3d.</code><code class="descname">KeyValueAttention2DLayer</code><span class="sig-paren">(</span><em>output_size=None</em>, <em>similarity='additive'</em>, <em>*</em>, <em>kernel_initializer='glorot_uniform'</em>, <em>wk_kernel_initializer='glorot_uniform'</em>, <em>wq_kernel_initializer='glorot_uniform'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention2DLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer" title="keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer"><code class="xref py py-class docutils literal"><span class="pre">keras_attention_block.key_value_attention3d.KeyValueAttention1DLayer</span></code></a></p>
+<p>key-value-attention2d的特点是输入的Key和Value为成对的数据Query一般为外部数据,
+Key和Query有一致的dim,和Value有一致的timestep,也就是中间两个纬度,
+输出的是Query的timestep,Value的dim形状的张量.
+4d的attention是为cnn设计的,其原理就是将4维的中间两维压缩为一维,之后输出的时候再解压缩出来.</p>
+<dl class="attribute">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.output_size">
+<code class="descname">output_size</code><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.output_size" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>tuple[int,int]</em> –</p>
+<ul class="simple">
+<li>指定输出的形状,如果是加性相似度(additive),        则必须指定,且可以随意指定,如果是其他则可以不指定,那就是原样形状输出,        如果指定的话则必须积与原形状第1,2纬度的积相等</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.similarity">
+<code class="descname">similarity</code><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.similarity" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Union[Callable,str]</em> –</p>
+<ul class="simple">
+<li>指定使用的相似度计算函数,目前可选的有        加性相似度(additive),乘性相似度(multiplicative),点乘相似度(dot_product),        当然也可以自己写一个,只要最终输出的是一个(?,output,input_timestep)的        用于指定第一个权重的形状,各维的意义[输出的纬度,第二个权重矩阵的第一个纬度]</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.kernel_initializer">
+<code class="descname">kernel_initializer</code><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>第一个权重的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.wk_kernel_initializer">
+<code class="descname">wk_kernel_initializer</code><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.wk_kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>第二个权重的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.wq_kernel_initializer">
+<code class="descname">wq_kernel_initializer</code><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.wq_kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>权重W_q的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.build">
+<code class="descname">build</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention2DLayer.build"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.build" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.call">
+<code class="descname">call</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention2DLayer.call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.call" title="Permalink to this definition">¶</a></dt>
+<dd><p>self-attention就是通过相似度函数计算得的相似矩阵过softmax后与自身点乘得到</p>
+<div class="math">
+\[A = Softmax(Similarity(Key,Query))\]</div>
+<div class="math">
+\[C = A \cdot Value\]</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.compute_output_shape">
+<code class="descname">compute_output_shape</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention2DLayer.compute_output_shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.compute_output_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.get_config">
+<code class="descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/key_value_attention3d.html#KeyValueAttention2DLayer.get_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.key_value_attention3d.KeyValueAttention2DLayer.get_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-keras_attention_block.self_attention">
+<span id="keras-attention-block-self-attention-module"></span><h2>keras_attention_block.self_attention module<a class="headerlink" href="#module-keras_attention_block.self_attention" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer">
+<em class="property">class </em><code class="descclassname">keras_attention_block.self_attention.</code><code class="descname">SelfAttention1DLayer</code><span class="sig-paren">(</span><em>similarity='additive'</em>, <em>*</em>, <em>kernel_size=None</em>, <em>kernel_initializer='glorot_uniform'</em>, <em>wk_kernel_initializer='glorot_uniform'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention1DLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">keras.engine.topology.Layer</span></code></p>
+<p>self-attention的特点是自己为输入,输出也是一个和自己一样shape的张量.</p>
+<dl class="attribute">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer.similarity">
+<code class="descname">similarity</code><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer.similarity" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Union[Callable,str]</em> –</p>
+<ul class="simple">
+<li>指定使用的相似度计算函数,目前可选的有        加性相似度(additive),乘性相似度(multiplicative),点乘相似度(dot_product),        当然也可以自己写一个,只要最终输出的是一个(?,output,input_timestep)的</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer.kernel_size">
+<code class="descname">kernel_size</code><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer.kernel_size" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>tuple[int,int]</em> –</p>
+<ul class="simple">
+<li>指定使用加性相似度(additive)时才能指定,        用于指定第一个权重的形状,各维的意义[输出的纬度,第二个权重矩阵的第一个纬度]</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer.kernel_initializer">
+<code class="descname">kernel_initializer</code><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer.kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>第一个权重的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer.wk_kernel_initializer">
+<code class="descname">wk_kernel_initializer</code><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer.wk_kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>第二个权重的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer.additive">
+<code class="descname">additive</code><span class="sig-paren">(</span><em>Source</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention1DLayer.additive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer.additive" title="Permalink to this definition">¶</a></dt>
+<dd><p>加性相似度,最经典的注意力相似度机制,如果是在self attention中则该层有两个权重矩阵形状为(r,d_a)和(d_a,dim)</p>
+<div class="math">
+\[Similarity(Source) = V \cdot tanh(W_k\cdot Source^T)\]</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer.build">
+<code class="descname">build</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention1DLayer.build"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer.build" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer.call">
+<code class="descname">call</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention1DLayer.call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer.call" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer.compute_output_shape">
+<code class="descname">compute_output_shape</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention1DLayer.compute_output_shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer.compute_output_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer.dot_product">
+<code class="descname">dot_product</code><span class="sig-paren">(</span><em>Source</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention1DLayer.dot_product"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer.dot_product" title="Permalink to this definition">¶</a></dt>
+<dd><p>点乘相似度,在google的attention is all you need 中看到的.很迷,没有要训练的矩阵,直接转置点乘,输出的固定为与原输入一样形状</p>
+<div class="math">
+\[Similarity(Source) = \frac{Source^T\cdot Source}{\sqrt{d_k}}\]</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer.get_config">
+<code class="descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention1DLayer.get_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer.get_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.self_attention.SelfAttention1DLayer.multiplicative">
+<code class="descname">multiplicative</code><span class="sig-paren">(</span><em>Source</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention1DLayer.multiplicative"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention1DLayer.multiplicative" title="Permalink to this definition">¶</a></dt>
+<dd><p>乘性相似度,其中的权重矩阵形状为[dim,dim]输出的固定为与原输入一样形状</p>
+<div class="math">
+\[Similarity(Source) =  Source\cdot W \cdot Source^T\]</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="keras_attention_block.self_attention.SelfAttention2DLayer">
+<em class="property">class </em><code class="descclassname">keras_attention_block.self_attention.</code><code class="descname">SelfAttention2DLayer</code><span class="sig-paren">(</span><em>output_size=None</em>, <em>similarity='additive'</em>, <em>*</em>, <em>d_a=None</em>, <em>kernel_initializer='glorot_uniform'</em>, <em>wk_kernel_initializer='glorot_uniform'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention2DLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention2DLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#keras_attention_block.self_attention.SelfAttention1DLayer" title="keras_attention_block.self_attention.SelfAttention1DLayer"><code class="xref py py-class docutils literal"><span class="pre">keras_attention_block.self_attention.SelfAttention1DLayer</span></code></a></p>
+<p>self-attention的特点是自己为输入,输出也是一个和自己一样shape的张量.
+2d的self-attention是为2dcnn设计的,其原理就是将4维的中间两维压缩为一维,之后输出的时候再解压缩出来.</p>
+<dl class="attribute">
+<dt id="keras_attention_block.self_attention.SelfAttention2DLayer.output_size">
+<code class="descname">output_size</code><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention2DLayer.output_size" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>tuple[int,int]</em> –</p>
+<ul class="simple">
+<li>指定输出的形状,如果是加性相似度(additive),        则必须指定,且可以随意指定,如果是其他则可以不指定,那就是原样形状输出,        如果指定的话则必须积与原形状第1,2纬度的积相等</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.self_attention.SelfAttention2DLayer.similarity">
+<code class="descname">similarity</code><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention2DLayer.similarity" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Union[Callable,str]</em> –</p>
+<ul class="simple">
+<li>指定使用的相似度计算函数,目前可选的有        加性相似度(additive),乘性相似度(multiplicative),点乘相似度(dot_product),        当然也可以自己写一个,只要最终输出的是一个(?,output,input_timestep)的        用于指定第一个权重的形状,各维的意义[输出的纬度,第二个权重矩阵的第一个纬度]</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.self_attention.SelfAttention2DLayer.d_a">
+<code class="descname">d_a</code><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention2DLayer.d_a" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>int</em> –</p>
+<ul class="simple">
+<li>使用加性相似度(additive)时才要指定,超参,用于指定第二个权重的第一维</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.self_attention.SelfAttention2DLayer.kernel_initializer">
+<code class="descname">kernel_initializer</code><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention2DLayer.kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>第一个权重的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keras_attention_block.self_attention.SelfAttention2DLayer.wk_kernel_initializer">
+<code class="descname">wk_kernel_initializer</code><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention2DLayer.wk_kernel_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> –</p>
+<ul class="simple">
+<li>第二个权重的初始化函数,默认glorot_uniform</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.self_attention.SelfAttention2DLayer.build">
+<code class="descname">build</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention2DLayer.build"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention2DLayer.build" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.self_attention.SelfAttention2DLayer.call">
+<code class="descname">call</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention2DLayer.call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention2DLayer.call" title="Permalink to this definition">¶</a></dt>
+<dd><p>self-attention就是通过相似度函数计算得的相似矩阵过softmax后与自身点乘得到</p>
+<div class="math">
+\[A = Softmax(Similarity(Source))\]</div>
+<div class="math">
+\[C = A \cdot Source\]</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.self_attention.SelfAttention2DLayer.compute_output_shape">
+<code class="descname">compute_output_shape</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention2DLayer.compute_output_shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention2DLayer.compute_output_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="keras_attention_block.self_attention.SelfAttention2DLayer.get_config">
+<code class="descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/keras_attention_block/self_attention.html#SelfAttention2DLayer.get_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keras_attention_block.self_attention.SelfAttention2DLayer.get_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-keras_attention_block">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-keras_attention_block" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">keras_attention_block package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-keras_attention_block.attention">keras_attention_block.attention module</a></li>
+<li><a class="reference internal" href="#module-keras_attention_block.key_value_attention3d">keras_attention_block.key_value_attention3d module</a></li>
+<li><a class="reference internal" href="#module-keras_attention_block.self_attention">keras_attention_block.self_attention module</a></li>
+<li><a class="reference internal" href="#module-keras_attention_block">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to keras_attention_block’s documentation!</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/keras_attention_block.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, hsz.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/keras_attention_block.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

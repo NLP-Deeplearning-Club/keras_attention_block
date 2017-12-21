@@ -1,0 +1,5 @@
+mkl
+numpy
+scipy
+scikit-learn
+keras
