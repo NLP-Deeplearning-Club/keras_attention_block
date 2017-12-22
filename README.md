@@ -20,10 +20,7 @@ keywords:keras,deeplearning,attention
 
 ## Example
 
-```
 
-
-````
 
 ## Install
 
