@@ -71,21 +71,18 @@ class SelfAttention1DLayer(Layer):
             r, d_a = self.kernel_size
             self.kernel = self.add_weight(name='kernel',
                                           shape=(r, d_a),
-                                          initializer=self.kernel_initializer,
-                                          trainable=True)
+                                          initializer=self.kernel_initializer
+                                          )
 
             self.wk_kernel = self.add_weight(
                 name='wk_kernel',
                 shape=(d_a, dim),
-                initializer=self.wk_kernel_initializer,
-                trainable=True)
+                initializer=self.wk_kernel_initializer)
         elif self.similarity == "multiplicative":
             self.kernel_size = (time, dim)
             self.kernel = self.add_weight(name='kernel',
-                                          shape=(
-                                              dim, dim),
-                                          initializer=self.kernel_initializer,
-                                          trainable=True)
+                                          shape=(dim, dim),
+                                          initializer=self.kernel_initializer)
         else:
             self.kernel_size = (time, dim)
 
@@ -147,6 +144,7 @@ class SelfAttention1DLayer(Layer):
         else:
             sim = getattr(self, self.similarity)(Source)
         sm = activations.softmax(sim)
+
         result = K.batch_dot(sm, Source)
         return result
 
