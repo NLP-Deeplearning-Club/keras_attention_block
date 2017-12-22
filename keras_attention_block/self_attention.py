@@ -4,23 +4,32 @@ from keras import backend as K
 from keras import initializers
 from keras import activations
 from keras.engine.topology import Layer
+from .mixins import MergfuncMixin
 
 
-class SelfAttention1DLayer(Layer):
+class SelfAttention1DLayer(Layer, MergfuncMixin):
     """self-attention的特点是自己为输入,输出也是一个和自己一样shape的张量.
 
     Attributes:
         similarity (Union[Callable,str]): - 指定使用的相似度计算函数,目前可选的有\
         加性相似度(additive),乘性相似度(multiplicative),点乘相似度(dot_product),\
         当然也可以自己写一个,只要最终输出的是一个(?,output,input_timestep)的
+
+        mergfunc (Union[Callable,str]): - 与similarity类似,目前可选的有:\
+        矩阵乘法(batch_dot_merg),逐项相乘(batch_mul_merg),逐项相加(batch_add_merg)
+
         kernel_size (tuple[int,int]): - 指定使用加性相似度(additive)时才能指定,\
         用于指定第一个权重的形状,各维的意义[输出的纬度,第二个权重矩阵的第一个纬度]
+
         kernel_initializer (str): - 第一个权重的初始化函数,默认glorot_uniform
+
         wk_kernel_initializer (str): - 第二个权重的初始化函数,默认glorot_uniform
     """
 
     def __init__(self, similarity="additive", *,
+                 mergfunc=None,
                  kernel_size=None,
+                 dropout_rate=None,
                  kernel_initializer='glorot_uniform',
                  wk_kernel_initializer='glorot_uniform',
                  **kwargs):
@@ -41,10 +50,12 @@ class SelfAttention1DLayer(Layer):
                 'hyperparameter kernel_size!'
             )
         if similarity != "additive" and kernel_size:
-            raise ValueError(
+            print(kernel_size)
+            print(
                 'only additive similarity support '
                 'hyperparameter kernel_size!'
             )
+            kernel_size = None
 
         if (isinstance(
             kernel_size,
@@ -53,6 +64,8 @@ class SelfAttention1DLayer(Layer):
         else:
             raise ValueError(
                 'kernel_size must be a Sequence with 2 int element')
+        self.dropout_rate = dropout_rate
+        self.mergfunc = mergfunc
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.wk_kernel_initializer = initializers.get(
             wk_kernel_initializer)
@@ -133,19 +146,32 @@ class SelfAttention1DLayer(Layer):
         sim = K.permute_dimensions(sim, (1, 0, 2))
         return sim
 
+    def linear(self, Source):
+        self.mergfunc = "batch_mul_merg"
+        Source_t = K.permute_dimensions(Source, (0, 2, 1))
+        return Source_t
+
     def _call_attention(self, Source):
         r"""self-attention就是通过相似度函数计算得的相似矩阵过softmax后与自身点乘得到
 
         .. math::  A = Softmax(Similarity(Source))
-        .. math::  C = A \cdot Source
+        .. math::  C = mergfunc(A,Source)
         """
         if isinstance(self.similarity, Callable):
             sim = self.similarity(Source)
         else:
             sim = getattr(self, self.similarity)(Source)
-        sm = activations.softmax(sim)
 
-        result = K.batch_dot(sm, Source)
+        sm = activations.softmax(sim)
+        if self.dropout_rate:
+            sm = K.dropout(sm, self.dropout_rate)
+        if isinstance(self.mergfunc, Callable):
+            result = self.mergfunc(sm, Source)
+        else:
+            result = getattr(
+                self,
+                self.mergfunc,
+                self.batch_dot_merg)(sm, Source)
         return result
 
     def call(self, inputs):
@@ -159,7 +185,9 @@ class SelfAttention1DLayer(Layer):
     def get_config(self):
         config = {
             'similarity': self.similarity,
+            'mergfunc': self.mergfunc,
             'kernel_size': self.kernel_size,
+            'dropout_rate': self.dropout_rate,
             'kernel_initializer': self.kernel_initializer,
             'wk_kernel_initializer': self.wk_kernel_initializer
         }
@@ -186,7 +214,9 @@ class SelfAttention2DLayer(SelfAttention1DLayer):
 
     def __init__(self, output_size=None,
                  similarity="additive", *,
+                 mergfunc=None,
                  d_a=None,
+                 dropout_rate=None,
                  kernel_initializer='glorot_uniform',
                  wk_kernel_initializer='glorot_uniform',
                  **kwargs):
@@ -201,8 +231,9 @@ class SelfAttention2DLayer(SelfAttention1DLayer):
                     'additive similarity need  hyperparameter d_a,output_size')
         else:
             kernel_size = None
-
         super().__init__(similarity=similarity,
+                         mergfunc=mergfunc,
+                         dropout_rate=dropout_rate,
                          kernel_size=kernel_size,
                          kernel_initializer=kernel_initializer,
                          wk_kernel_initializer=wk_kernel_initializer, **kwargs)
@@ -225,7 +256,6 @@ class SelfAttention2DLayer(SelfAttention1DLayer):
         dim = input_shape[-1]
         self.dim = dim
         self._build_w(time, dim)
-        # Be sure to call this somewhere!
         super(SelfAttention1DLayer, self).build(input_shape)
 
     def call(self, inputs):
@@ -235,7 +265,6 @@ class SelfAttention2DLayer(SelfAttention1DLayer):
         .. math::  C = A \cdot Source
         """
         input_shape = inputs.shape
-        # help(input_shape[1])
         Source = K.reshape(
             inputs, shape=np.asarray(
                 [-1, (input_shape[1] * input_shape[2]).value,

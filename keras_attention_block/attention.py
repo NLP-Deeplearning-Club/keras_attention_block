@@ -4,9 +4,10 @@ from keras import backend as K
 from keras import initializers
 from keras import activations
 from keras.engine.topology import Layer
+from .mixins import MergfuncMixin
 
 
-class Attention1DLayer(Layer):
+class Attention1DLayer(Layer, MergfuncMixin):
     """attention1d的特点是自己为输入的Key和Value,输出的是Query的timestep为长度,dim一致的张量
 
     Attributes:
@@ -18,7 +19,9 @@ class Attention1DLayer(Layer):
         wq_kernel_initializer (str): - 权重W_q的初始化函数,默认glorot_uniform
     """
 
-    def __init__(self, similarity="additive",
+    def __init__(self, similarity="additive", *,
+                 mergfunc=None,
+                 dropout_rate=None,
                  kernel_initializer='glorot_uniform',
                  wk_kernel_initializer='glorot_uniform',
                  wq_kernel_initializer='glorot_uniform',
@@ -34,7 +37,8 @@ class Attention1DLayer(Layer):
                 '"multiplicative","dot_product","additive",'
                 'and you can input a function as the similarity function!'
             )
-
+        self.mergfunc = mergfunc
+        self.dropout_rate = dropout_rate
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.wk_kernel_initializer = initializers.get(
             wk_kernel_initializer)
@@ -143,7 +147,12 @@ class Attention1DLayer(Layer):
         else:
             sim = getattr(self, self.similarity)(Source, Query)
         sm = activations.softmax(sim)
-        result = K.batch_dot(sm, Source)
+        if self.dropout_rate:
+            sm = K.dropout(sm, self.dropout_rate)
+        if isinstance(self.mergfunc, Callable):
+            result = self.mergfunc(sm, Source)
+        else:
+            result = getattr(self, self.mergfunc)(sm, Source)
         return result
 
     def call(self, inputs):
@@ -158,6 +167,8 @@ class Attention1DLayer(Layer):
     def get_config(self):
         config = {
             'similarity': self.similarity,
+            'mergfunc': self.mergfunc,
+            'dropout_rate': self.dropout_rate,
             'kernel_initializer': self.kernel_initializer,
             'wk_kernel_initializer': self.wk_kernel_initializer,
             'wq_kernel_initializer': self.wq_kernel_initializer
@@ -185,12 +196,16 @@ class Attention2DLayer(Attention1DLayer):
 
     def __init__(self, output_size=None,
                  similarity="additive", *,
+                 mergfunc=None,
+                 dropout_rate=None,
                  kernel_initializer='glorot_uniform',
                  wk_kernel_initializer='glorot_uniform',
                  wq_kernel_initializer='glorot_uniform',
                  **kwargs):
         self.output_size = output_size
         super().__init__(similarity=similarity,
+                         dropout_rate=dropout_rate,
+                         mergfunc=mergfunc,
                          kernel_initializer=kernel_initializer,
                          wk_kernel_initializer=wk_kernel_initializer,
                          wq_kernel_initializer=wq_kernel_initializer, **kwargs)

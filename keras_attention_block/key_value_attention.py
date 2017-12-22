@@ -4,9 +4,10 @@ from keras import backend as K
 from keras import initializers
 from keras import activations
 from keras.engine.topology import Layer
+from .mixins import MergfuncMixin
 
 
-class KeyValueAttention1DLayer(Layer):
+class KeyValueAttention1DLayer(Layer, MergfuncMixin):
     """key-value-attention1d的特点是输入的Key和Value为成对的数据Query一般为外部数据,Key和Query有一致的dim,和Value有一致的timestep,
     输出的是Query的timestep,Value的dim形状的张量
 
@@ -19,7 +20,9 @@ class KeyValueAttention1DLayer(Layer):
         wq_kernel_initializer (): - 权重W_q的初始化函数,默认glorot_uniform
     """
 
-    def __init__(self, similarity="additive",
+    def __init__(self, similarity="additive", *,
+                 mergfunc=None,
+                 dropout_rate=None,
                  kernel_initializer='glorot_uniform',
                  wk_kernel_initializer='glorot_uniform',
                  wq_kernel_initializer='glorot_uniform',
@@ -35,7 +38,8 @@ class KeyValueAttention1DLayer(Layer):
                 '"multiplicative","dot_product","additive",'
                 'and you can input a function as the similarity function!'
             )
-
+        self.mergfunc = mergfunc,
+        self.dropout_rate = dropout_rate
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.wk_kernel_initializer = initializers.get(
             wk_kernel_initializer)
@@ -80,7 +84,6 @@ class KeyValueAttention1DLayer(Layer):
         if not isinstance(input_shape, list) or len(input_shape) != 3:
             raise ValueError('A key-value attention layer should be called '
                              'on a list of 3 inputs.')
-
         if len(input_shape[0]) != 3 or len(
                 input_shape[1]) != 3 or len(input_shape[2]) != 3:
             raise ValueError('A key-value attention layer should be called '
@@ -97,7 +100,6 @@ class KeyValueAttention1DLayer(Layer):
                              'by 3 (batch,time_step,dim)3D inputs '
                              'and key ,value have the same timestep.'
                              'Got ' + str(input_shape) + ' inputs.')
-
         dim = input_shape[0][-1]
         s_time = input_shape[0][1]
         q_time = input_shape[2][1]
@@ -152,7 +154,12 @@ class KeyValueAttention1DLayer(Layer):
         else:
             sim = getattr(self, self.similarity)(Key, Query)
         sm = activations.softmax(sim)
-        result = K.batch_dot(sm, Value)
+        if self.dropout_rate:
+            sm = K.dropout(sm, self.dropout_rate)
+        if isinstance(self.mergfunc, Callable):
+            result = self.mergfunc(sm, Value)
+        else:
+            result = getattr(self, self.mergfunc)(sm, Value)
         return result
 
     def call(self, inputs):
@@ -168,6 +175,8 @@ class KeyValueAttention1DLayer(Layer):
     def get_config(self):
         config = {
             'similarity': self.similarity,
+            'mergfunc': self.mergfunc,
+            'dropout_rate': self.dropout_rate,
             'kernel_initializer': self.kernel_initializer,
             'wk_kernel_initializer': self.wk_kernel_initializer,
             'wq_kernel_initializer': self.wq_kernel_initializer
@@ -197,12 +206,16 @@ class KeyValueAttention2DLayer(KeyValueAttention1DLayer):
 
     def __init__(self, output_size=None,
                  similarity="additive", *,
+                 mergfunc=None,
+                 dropout_rate=None,
                  kernel_initializer='glorot_uniform',
                  wk_kernel_initializer='glorot_uniform',
                  wq_kernel_initializer='glorot_uniform',
                  **kwargs):
         self.output_size = output_size
         super().__init__(similarity=similarity,
+                         mergfunc=mergfunc,
+                         dropout_rate=dropout_rate,
                          kernel_initializer=kernel_initializer,
                          wk_kernel_initializer=wk_kernel_initializer,
                          wq_kernel_initializer=wq_kernel_initializer, **kwargs)
@@ -211,7 +224,6 @@ class KeyValueAttention2DLayer(KeyValueAttention1DLayer):
         if not isinstance(input_shape, list) or len(input_shape) != 3:
             raise ValueError('A attention layer should be called '
                              'on a list of 3 inputs.')
-
         if len(input_shape[0]) != 4 or len(
                 input_shape[1]) != 4 or len(input_shape[2]) != 4:
             raise ValueError('A key-value attention layer should be called '
@@ -229,12 +241,10 @@ class KeyValueAttention2DLayer(KeyValueAttention1DLayer):
                              'by 3 (batch,time_step,dim)3D inputs '
                              'and key ,value have the same timestep.'
                              'Got ' + str(input_shape) + ' inputs.')
-
         dim = input_shape[0][-1]
         self.dim = input_shape[1][-1]
         s_time = input_shape[0][1] * input_shape[0][2]
         q_time = input_shape[2][1] * input_shape[2][2]
-
         if (self.output_size is not None) and (
                 q_time != self.output_size[0] * self.output_size[1]):
             raise ValueError('output size error ')
@@ -255,7 +265,6 @@ class KeyValueAttention2DLayer(KeyValueAttention1DLayer):
         Key_shape = Key_.shape
         Value_shape = Value_.shape
         Query_shape = Query_.shape
-
         Key = K.reshape(
             Key_, shape=np.asarray(
                 [-1,
