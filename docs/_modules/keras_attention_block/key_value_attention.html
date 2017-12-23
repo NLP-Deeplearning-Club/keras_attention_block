@@ -5,7 +5,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>keras_attention_block.attention &#8212; keras_attention_block  documentation</title>
+    <title>keras_attention_block.key_value_attention &#8212; keras_attention_block  documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
@@ -39,7 +39,7 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <h1>Source code for keras_attention_block.attention</h1><div class="highlight"><pre>
+  <h1>Source code for keras_attention_block.key_value_attention</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">collections.abc</span> <span class="k">import</span> <span class="n">Callable</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">keras</span> <span class="k">import</span> <span class="n">backend</span> <span class="k">as</span> <span class="n">K</span>
@@ -49,16 +49,17 @@
 <span class="kn">from</span> <span class="nn">.mixins</span> <span class="k">import</span> <span class="n">MergfuncMixin</span>
 
 
-<div class="viewcode-block" id="Attention1DLayer"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention1DLayer">[docs]</a><span class="k">class</span> <span class="nc">Attention1DLayer</span><span class="p">(</span><span class="n">Layer</span><span class="p">,</span> <span class="n">MergfuncMixin</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;attention1d的特点是自己为输入的Key和Value,输出的是Query的timestep为长度,dim一致的张量</span>
+<div class="viewcode-block" id="KeyValueAttention1DLayer"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention1DLayer">[docs]</a><span class="k">class</span> <span class="nc">KeyValueAttention1DLayer</span><span class="p">(</span><span class="n">Layer</span><span class="p">,</span> <span class="n">MergfuncMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;key-value-attention1d的特点是输入的Key和Value为成对的数据Query一般为外部数据,Key和Query有一致的dim,和Value有一致的timestep,</span>
+<span class="sd">    输出的是Query的timestep,Value的dim形状的张量</span>
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        similarity (Union[Callable,str]): - 指定使用的相似度计算函数,目前可选的有\</span>
 <span class="sd">        加性相似度(additive),乘性相似度(multiplicative),点乘相似度(dot_product),\</span>
 <span class="sd">        当然也可以自己写一个,只要最终输出的是一个(?,output,input_timestep)的</span>
 <span class="sd">        kernel_initializer (str): - 权重V的初始化函数,默认glorot_uniform</span>
-<span class="sd">        wk_kernel_initializer (str): - 权重W_k的初始化函数,默认glorot_uniform</span>
-<span class="sd">        wq_kernel_initializer (str): - 权重W_q的初始化函数,默认glorot_uniform</span>
+<span class="sd">        wk_kernel_initializer (): - 权重W_k的初始化函数,默认glorot_uniform</span>
+<span class="sd">        wq_kernel_initializer (): - 权重W_q的初始化函数,默认glorot_uniform</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">similarity</span><span class="o">=</span><span class="s2">&quot;additive&quot;</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
@@ -79,7 +80,7 @@
                 <span class="s1">&#39;&quot;multiplicative&quot;,&quot;dot_product&quot;,&quot;additive&quot;,&#39;</span>
                 <span class="s1">&#39;and you can input a function as the similarity function!&#39;</span>
             <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span> <span class="o">=</span> <span class="n">mergfunc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span> <span class="o">=</span> <span class="n">mergfunc</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span> <span class="o">=</span> <span class="n">dropout_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel_initializer</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kernel_initializer</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">wk_kernel_initializer</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
@@ -121,56 +122,62 @@
                 <span class="n">initializer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_initializer</span><span class="p">,</span>
                 <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Attention1DLayer.build"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention1DLayer.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A attention layer should be called &#39;</span>
-                             <span class="s1">&#39;on a list of 2 inputs.&#39;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">3</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A attention layer should be called &#39;</span>
-                             <span class="s1">&#39;by 2 (batch,time_step,dim)3D inputs.&#39;</span>
+<div class="viewcode-block" id="KeyValueAttention1DLayer.build"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention1DLayer.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A key-value attention layer should be called &#39;</span>
+                             <span class="s1">&#39;on a list of 3 inputs.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">3</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span>
+                <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">3</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A key-value attention layer should be called &#39;</span>
+                             <span class="s1">&#39;by 3 (batch,time_step,dim)3D inputs.&#39;</span>
                              <span class="s1">&#39;Got &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; inputs.&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A attention layer should be called &#39;</span>
-                             <span class="s1">&#39;by 2 (batch,time_step,dim)3D inputs &#39;</span>
-                             <span class="s1">&#39;with the same dim.&#39;</span>
+        <span class="k">if</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A key-value attention layer should be called &#39;</span>
+                             <span class="s1">&#39;by 3 (batch,time_step,dim)3D inputs &#39;</span>
+                             <span class="s1">&#39;and key ,query have the same dim.&#39;</span>
+                             <span class="s1">&#39;Got &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; inputs.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">2</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A key-value attention layer should be called &#39;</span>
+                             <span class="s1">&#39;by 3 (batch,time_step,dim)3D inputs &#39;</span>
+                             <span class="s1">&#39;and key ,value have the same timestep.&#39;</span>
                              <span class="s1">&#39;Got &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; inputs.&#39;</span><span class="p">)</span>
         <span class="n">dim</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">s_time</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">q_time</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">s_time</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">q_time</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_build_w</span><span class="p">(</span><span class="n">s_time</span><span class="p">,</span> <span class="n">q_time</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
         <span class="c1"># Be sure to call this somewhere!</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Attention1DLayer.multiplicative"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention1DLayer.multiplicative">[docs]</a>    <span class="k">def</span> <span class="nf">multiplicative</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Source</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyValueAttention1DLayer.multiplicative"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention1DLayer.multiplicative">[docs]</a>    <span class="k">def</span> <span class="nf">multiplicative</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Key</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;乘性相似度,其中的权重矩阵形状为[dim,dim]\</span>
 <span class="sd">        输出的固定为与原输入一样形状</span>
 
-<span class="sd">        .. math::  Similarity(Source,Query) = Query \cdot W \cdot Source^T</span>
+<span class="sd">        .. math::  Similarity(Key,Query) = Query \cdot W \cdot Source^T</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">Source_t</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">permute_dimensions</span><span class="p">(</span><span class="n">Source</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">Key_t</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">permute_dimensions</span><span class="p">(</span><span class="n">Key</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
         <span class="n">s</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Query</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">)</span>
-        <span class="n">sim</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">batch_dot</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">Source_t</span><span class="p">)</span>
+        <span class="n">sim</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">batch_dot</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">Key_t</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sim</span></div>
 
-<div class="viewcode-block" id="Attention1DLayer.dot_product"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention1DLayer.dot_product">[docs]</a>    <span class="k">def</span> <span class="nf">dot_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Source</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyValueAttention1DLayer.dot_product"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention1DLayer.dot_product">[docs]</a>    <span class="k">def</span> <span class="nf">dot_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Key</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;点乘相似度,在google的attention is all you need 中看到的.\</span>
 <span class="sd">        很迷,没有要训练的矩阵,直接转置点乘</span>
 
-<span class="sd">        .. math:: Similarity(Source,Query)=\frac{Source^T\cdot Query}{\sqrt{d_k}}</span>
+<span class="sd">        .. math::  Similarity(Key,Query) = \frac{Key^T\cdot Query}{\sqrt{d_k}}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">sim</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">batch_dot</span><span class="p">(</span><span class="n">Source</span><span class="p">,</span> <span class="n">Query</span><span class="p">)</span>
+        <span class="n">sim</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">batch_dot</span><span class="p">(</span><span class="n">Key</span><span class="p">,</span> <span class="n">Query</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sim</span></div>
 
-<div class="viewcode-block" id="Attention1DLayer.additive"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention1DLayer.additive">[docs]</a>    <span class="k">def</span> <span class="nf">additive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Source</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyValueAttention1DLayer.additive"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention1DLayer.additive">[docs]</a>    <span class="k">def</span> <span class="nf">additive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Key</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        加性相似度,最经典的注意力相似度机制,如果是在self attention中\</span>
 <span class="sd">        则该层有3个权重矩阵形状为W_k(time_q,time_k)和W_q(time_q,time_q)\</span>
 <span class="sd">        以及V(dim,time_k)</span>
 
-<span class="sd">        .. math:: Similarity(Source)=tanh(W_k\cdot Source+W_q\cdot Query)\cdot V</span>
+<span class="sd">        .. math:: Similarity(Key)=tanh(W_k\cdot Key+W_q\cdot Query)\cdot V</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">key_att</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wk_kernel</span><span class="p">,</span> <span class="n">Source</span><span class="p">)</span>
+        <span class="n">key_att</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wk_kernel</span><span class="p">,</span> <span class="n">Key</span><span class="p">)</span>
         <span class="n">key_att</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">permute_dimensions</span><span class="p">(</span><span class="n">key_att</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
         <span class="n">que_att</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wq_kernel</span><span class="p">,</span> <span class="n">Query</span><span class="p">)</span>
         <span class="n">que_att</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">permute_dimensions</span><span class="p">(</span><span class="n">que_att</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
@@ -178,37 +185,38 @@
         <span class="n">sim</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">f_att</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sim</span></div>
 
-    <span class="k">def</span> <span class="nf">_call_attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Source</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_call_attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Key</span><span class="p">,</span> <span class="n">Value</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;self-attention就是通过相似度函数计算得的相似矩阵过softmax后与自身点乘得到</span>
 
 <span class="sd">        .. math::  A = Softmax(Similarity(Source,Query))</span>
 <span class="sd">        .. math::  C = A \cdot Source</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>
-            <span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="p">(</span><span class="n">Source</span><span class="p">,</span> <span class="n">Query</span><span class="p">)</span>
+            <span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="p">(</span><span class="n">Key</span><span class="p">,</span> <span class="n">Query</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">sim</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="p">)(</span><span class="n">Source</span><span class="p">,</span> <span class="n">Query</span><span class="p">)</span>
+            <span class="n">sim</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="p">)(</span><span class="n">Key</span><span class="p">,</span> <span class="n">Query</span><span class="p">)</span>
         <span class="n">sm</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">:</span>
             <span class="n">sm</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Source</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Value</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">,</span> <span class="s1">&#39;batch_dot_merg&#39;</span><span class="p">)(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Source</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">,</span> <span class="s1">&#39;batch_dot_merg&#39;</span><span class="p">)(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Value</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;batch_dot_merg&#39;</span><span class="p">)(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Source</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;batch_dot_merg&#39;</span><span class="p">)(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Value</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">result</span>
 
-<div class="viewcode-block" id="Attention1DLayer.call"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention1DLayer.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
-        <span class="n">Source</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">Query</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_attention</span><span class="p">(</span><span class="n">Source</span><span class="p">,</span> <span class="n">Query</span><span class="p">)</span>
+<div class="viewcode-block" id="KeyValueAttention1DLayer.call"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention1DLayer.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">Key</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">Value</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">Query</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_attention</span><span class="p">(</span><span class="n">Key</span><span class="p">,</span> <span class="n">Value</span><span class="p">,</span> <span class="n">Query</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">result</span></div>
 
-<div class="viewcode-block" id="Attention1DLayer.compute_output_shape"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention1DLayer.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+<div class="viewcode-block" id="KeyValueAttention1DLayer.compute_output_shape"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention1DLayer.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
 
-<div class="viewcode-block" id="Attention1DLayer.get_config"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention1DLayer.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyValueAttention1DLayer.get_config"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention1DLayer.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;similarity&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="p">,</span>
             <span class="s1">&#39;mergfunc&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">,</span>
@@ -221,9 +229,11 @@
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">base_config</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span></div></div>
 
 
-<div class="viewcode-block" id="Attention2DLayer"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention2DLayer">[docs]</a><span class="k">class</span> <span class="nc">Attention2DLayer</span><span class="p">(</span><span class="n">Attention1DLayer</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;attention的特点是自己为输入,输出也是一个和自己一样shape的张量.</span>
-<span class="sd">    2d的attention是为2dcnn设计的,其原理就是将4维的中间两维压缩为一维,之后输出的时候再解压缩出来.</span>
+<div class="viewcode-block" id="KeyValueAttention2DLayer"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention2DLayer">[docs]</a><span class="k">class</span> <span class="nc">KeyValueAttention2DLayer</span><span class="p">(</span><span class="n">KeyValueAttention1DLayer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;key-value-attention2d的特点是输入的Key和Value为成对的数据Query一般为外部数据,</span>
+<span class="sd">    Key和Query有一致的dim,和Value有一致的timestep,也就是中间两个纬度,</span>
+<span class="sd">    输出的是Query的timestep,Value的dim形状的张量.</span>
+<span class="sd">    4d的attention是为cnn设计的,其原理就是将4维的中间两维压缩为一维,之后输出的时候再解压缩出来.</span>
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        output_size (tuple[int,int]): - 指定输出的形状,如果是加性相似度(additive),\</span>
@@ -248,60 +258,73 @@
                  <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span> <span class="o">=</span> <span class="n">output_size</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">similarity</span><span class="o">=</span><span class="n">similarity</span><span class="p">,</span>
-                         <span class="n">dropout_rate</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">,</span>
                          <span class="n">mergfunc</span><span class="o">=</span><span class="n">mergfunc</span><span class="p">,</span>
+                         <span class="n">dropout_rate</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">,</span>
                          <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">kernel_initializer</span><span class="p">,</span>
                          <span class="n">wk_kernel_initializer</span><span class="o">=</span><span class="n">wk_kernel_initializer</span><span class="p">,</span>
                          <span class="n">wq_kernel_initializer</span><span class="o">=</span><span class="n">wq_kernel_initializer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Attention2DLayer.build"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention2DLayer.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+<div class="viewcode-block" id="KeyValueAttention2DLayer.build"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention2DLayer.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A attention layer should be called &#39;</span>
-                             <span class="s1">&#39;on a list of 2 inputs.&#39;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">4</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A attention layer should be called &#39;</span>
-                             <span class="s1">&#39;by 2 (batch,X,Y,dim)4D inputs.&#39;</span>
+                             <span class="s1">&#39;on a list of 3 inputs.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">4</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span>
+                <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">4</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A key-value attention layer should be called &#39;</span>
+                             <span class="s1">&#39;by 3 (batch,time_step,dim)3D inputs.&#39;</span>
                              <span class="s1">&#39;Got &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; inputs.&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A attention layer should be called &#39;</span>
-                             <span class="s1">&#39;by 2 (batch,X,Y,dim)4D inputs &#39;</span>
-                             <span class="s1">&#39;with the same dim.&#39;</span>
+        <span class="k">if</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A key-value attention layer should be called &#39;</span>
+                             <span class="s1">&#39;by 3 (batch,time_step,dim)3D inputs &#39;</span>
+                             <span class="s1">&#39;and key ,query have the same dim.&#39;</span>
+                             <span class="s1">&#39;Got &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; inputs.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A key-value attention layer should be called &#39;</span>
+                             <span class="s1">&#39;by 3 (batch,time_step,dim)3D inputs &#39;</span>
+                             <span class="s1">&#39;and key ,value have the same timestep.&#39;</span>
                              <span class="s1">&#39;Got &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; inputs.&#39;</span><span class="p">)</span>
         <span class="n">dim</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">s_time</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">q_time</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
-
+        <span class="n">q_time</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
         <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
                 <span class="n">q_time</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;output size error &#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_build_w</span><span class="p">(</span><span class="n">s_time</span><span class="p">,</span> <span class="n">q_time</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">Attention1DLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span></div>
+        <span class="nb">super</span><span class="p">(</span><span class="n">KeyValueAttention1DLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Attention2DLayer.call"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention2DLayer.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyValueAttention2DLayer.call"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention2DLayer.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;self-attention就是通过相似度函数计算得的相似矩阵过softmax后与自身点乘得到</span>
 
-<span class="sd">        .. math::  A = Softmax(Similarity(Source))</span>
-<span class="sd">        .. math::  C = A \cdot Source</span>
+<span class="sd">        .. math::  A = Softmax(Similarity(Key,Query))</span>
+<span class="sd">        .. math::  C = A \cdot Value</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">Source_</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">Query_</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">Source_shape</span> <span class="o">=</span> <span class="n">Source_</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">Key_</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">Value_</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">Query_</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">Key_shape</span> <span class="o">=</span> <span class="n">Key_</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">Value_shape</span> <span class="o">=</span> <span class="n">Value_</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">Query_shape</span> <span class="o">=</span> <span class="n">Query_</span><span class="o">.</span><span class="n">shape</span>
-
-        <span class="n">Source</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-            <span class="n">Source_</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+        <span class="n">Key</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">Key_</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
                 <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-                 <span class="p">(</span><span class="n">Source_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">Source_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-                 <span class="n">Source_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">]))</span>
+                 <span class="p">(</span><span class="n">Key_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">Key_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                 <span class="n">Key_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">]))</span>
+        <span class="n">Value</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">Value_</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="p">(</span><span class="n">Value_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">Value_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                 <span class="n">Value_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">]))</span>
         <span class="n">Query</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">Query_</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
                 <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span>
                  <span class="p">(</span><span class="n">Query_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">Query_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
                  <span class="n">Query_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">]))</span>
-        <span class="n">_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_attention</span><span class="p">(</span><span class="n">Source</span><span class="p">,</span> <span class="n">Query</span><span class="p">)</span>
+        <span class="n">_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_attention</span><span class="p">(</span><span class="n">Key</span><span class="p">,</span> <span class="n">Value</span><span class="p">,</span> <span class="n">Query</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">_result</span><span class="p">,</span>
             <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span>
@@ -310,11 +333,11 @@
                         <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">]))</span>
         <span class="k">return</span> <span class="n">result</span></div>
 
-<div class="viewcode-block" id="Attention2DLayer.compute_output_shape"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention2DLayer.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyValueAttention2DLayer.compute_output_shape"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention2DLayer.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>  <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Attention2DLayer.get_config"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.attention.Attention2DLayer.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyValueAttention2DLayer.get_config"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.key_value_attention.KeyValueAttention2DLayer.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;output_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span>
         <span class="p">}</span>
@@ -322,7 +345,7 @@
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">base_config</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span></div></div>
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Attention1DLayer&#39;</span><span class="p">,</span> <span class="s1">&#39;Attention2DLayer&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;KeyValueAttention1DLayer&quot;</span><span class="p">,</span> <span class="s2">&quot;KeyValueAttention2DLayer&quot;</span><span class="p">]</span>
 </pre></div>
 
           </div>

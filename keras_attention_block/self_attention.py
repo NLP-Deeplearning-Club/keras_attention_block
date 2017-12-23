@@ -36,7 +36,7 @@ class SelfAttention1DLayer(Layer, MergfuncMixin):
         if isinstance(similarity, Callable):
             self.similarity = similarity
         elif isinstance(similarity, str) and similarity in (
-                "multiplicative", "dot_product", "additive"):
+                "multiplicative", "dot_product", "additive", "linear"):
             self.similarity = similarity
         else:
             raise ValueError(
@@ -167,11 +167,10 @@ class SelfAttention1DLayer(Layer, MergfuncMixin):
             sm = K.dropout(sm, self.dropout_rate)
         if isinstance(self.mergfunc, Callable):
             result = self.mergfunc(sm, Source)
+        elif isinstance(self.mergfunc, str):
+            result = getattr(self, self.mergfunc, 'batch_dot_merg')(sm, Source)
         else:
-            result = getattr(
-                self,
-                self.mergfunc,
-                self.batch_dot_merg)(sm, Source)
+            result = getattr(self, 'batch_dot_merg')(sm, Source)
         return result
 
     def call(self, inputs):

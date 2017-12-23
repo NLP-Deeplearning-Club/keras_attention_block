@@ -42,18 +42,86 @@
             
   <div class="section" id="welcome-to-keras-attention-block-s-documentation">
 <h1>Welcome to keras_attention_block’s documentation!<a class="headerlink" href="#welcome-to-keras-attention-block-s-documentation" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>version: 0.0.2</li>
+<li>status: dev</li>
+<li>author: hsz</li>
+<li>email: <a class="reference external" href="mailto:hsz1273327&#37;&#52;&#48;gmail&#46;com">hsz1273327<span>&#64;</span>gmail<span>&#46;</span>com</a></li>
+</ul>
+<div class="section" id="desc">
+<h2>Desc<a class="headerlink" href="#desc" title="Permalink to this headline">¶</a></h2>
+<p>keras-attention-block is an extension for keras to add attention. It was born from lack of existing function to add attention inside keras.
+The module itself is pure Python with no dependencies on modules or packages outside the standard Python distribution and keras.</p>
+<p>keywords:keras,deeplearning,attention</p>
+</div>
+<div class="section" id="feature">
+<h2>Feature<a class="headerlink" href="#feature" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>support one dimensional attention, that is to take in inputs whose dimensions are batch_size * time_step * hidden_size</li>
+<li>support two dimensional attention, that is to take in inputs of dimensions are batch_size * X * Y * hidden_size</li>
+<li>support self-attention, that is to take in tensors. Four well defined calculations are included : additive, multiplicative, dot-product based and  as well as linear.</li>
+<li>support attention, that is to take in two tensors. Three well defined calculations are included : additive, multiplicative and dot product based.</li>
+<li>support attention. Three well defined calculations are included : additive, multiplicative and dot product based.</li>
+<li>support multihead attention</li>
+<li>support customized calculations of similarity between Key and Query</li>
+<li>support customized calculations of Value</li>
+</ul>
+</div>
+<div class="section" id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">keras.layers</span> <span class="k">import</span> <span class="n">merge</span>
+<span class="kn">from</span> <span class="nn">keras.layers.core</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">keras.layers.recurrent</span> <span class="k">import</span> <span class="n">LSTM</span>
+<span class="kn">from</span> <span class="nn">keras.layers</span> <span class="k">import</span> <span class="n">Convolution2D</span>
+<span class="kn">from</span> <span class="nn">keras.models</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">keras.layers.normalization</span> <span class="k">import</span> <span class="n">BatchNormalization</span>
+<span class="kn">from</span> <span class="nn">keras_attention_block</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="n">INPUT_DIM</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="n">TIME_STEPS</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">SINGLE_ATTENTION_VECTOR</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">APPLY_ATTENTION_BEFORE_LSTM</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">TIME_STEPS</span><span class="p">,</span> <span class="n">INPUT_DIM</span><span class="p">))</span>
+<span class="n">attention_mul</span> <span class="o">=</span>  <span class="n">SelfAttention1DLayer</span><span class="p">(</span><span class="n">similarity</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span><span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)(</span><span class="n">inputs</span><span class="p">)</span><span class="c1">#MyLayer((20,32))(inputs)#</span>
+<span class="n">lstm_units</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="c1">#attention_mul = LSTM(lstm_units, return_sequences=False)(attention_mul)</span>
+<span class="n">attention_mul</span> <span class="o">=</span> <span class="n">Flatten</span><span class="p">()(</span><span class="n">attention_mul</span><span class="p">)</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;sigmoid&#39;</span><span class="p">)(</span><span class="n">attention_mul</span><span class="p">)</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">inputs</span><span class="p">],</span> <span class="n">outputs</span><span class="o">=</span><span class="n">output</span><span class="p">)</span>
+
+<span class="n">m</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s1">&#39;adam&#39;</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;binary_crossentropy&#39;</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+
+<span class="n">train_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">1000</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">32</span><span class="p">))</span>
+<span class="n">train_lab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1000</span><span class="p">)</span>
+<span class="n">m</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span><span class="n">train_lab</span> <span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span> <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="install">
+<h2>Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">keras_attention_block</span></code></li>
+</ul>
+</div>
+<div class="section" id="todo">
+<h2>TODO<a class="headerlink" href="#todo" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>3D attention</li>
+</ul>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">APIS:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="keras_attention_block.html">keras_attention_block package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="keras_attention_block.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="keras_attention_block.html#module-keras_attention_block.attention">keras_attention_block.attention module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="keras_attention_block.html#module-keras_attention_block.key_value_attention3d">keras_attention_block.key_value_attention3d module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keras_attention_block.html#module-keras_attention_block.key_value_attention">keras_attention_block.key_value_attention module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="keras_attention_block.html#module-keras_attention_block.self_attention">keras_attention_block.self_attention module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="keras_attention_block.html#module-keras_attention_block">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keras_attention_block.html#module-keras_attention_block.mulithead_attention">keras_attention_block.mulithead_attention module</a></li>
 </ul>
 </li>
 </ul>
+</div>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
@@ -73,7 +141,14 @@
         <div class="sphinxsidebarwrapper">
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Welcome to keras_attention_block’s documentation!</a></li>
+<li><a class="reference internal" href="#">Welcome to keras_attention_block’s documentation!</a><ul>
+<li><a class="reference internal" href="#desc">Desc</a></li>
+<li><a class="reference internal" href="#feature">Feature</a></li>
+<li><a class="reference internal" href="#example">Example</a></li>
+<li><a class="reference internal" href="#install">Install</a></li>
+<li><a class="reference internal" href="#todo">TODO</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 <div class="relations">

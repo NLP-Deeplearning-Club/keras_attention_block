@@ -1,9 +1,6 @@
 keras\_attention\_block package
 ===============================
 
-Submodules
-----------
-
 keras\_attention\_block\.attention module
 -----------------------------------------
 
@@ -12,10 +9,10 @@ keras\_attention\_block\.attention module
     :undoc-members:
     :show-inheritance:
 
-keras\_attention\_block\.key\_value\_attention3d module
+keras\_attention\_block\.key\_value\_attention module
 -------------------------------------------------------
 
-.. automodule:: keras_attention_block.key_value_attention3d
+.. automodule:: keras_attention_block.key_value_attention
     :members:
     :undoc-members:
     :show-inheritance:
@@ -28,11 +25,10 @@ keras\_attention\_block\.self\_attention module
     :undoc-members:
     :show-inheritance:
 
+keras\_attention\_block\.mulithead\_attention module
+-------------------------------------------------------
 
-Module contents
----------------
-
-.. automodule:: keras_attention_block
+.. automodule:: keras_attention_block.mulithead_attention
     :members:
     :undoc-members:
     :show-inheritance:

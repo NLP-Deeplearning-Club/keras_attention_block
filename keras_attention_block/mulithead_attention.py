@@ -6,14 +6,14 @@ from .self_attention import SelfAttention1DLayer
 
 
 class MulitheadAttention:
-    """多头注意力机制(MulitheadAttention).是我在google的all you need is attention中看到的注意力机制.
+    r"""多头注意力机制(MulitheadAttention).是我在google的all you need is attention中看到的注意力机制.
     其核心思想是将dim一层拆分后各自单独进入attention中,以适用于多GPU并行计算,有点map-reduce的意思在里面.
-    在实现上,我使用的是:
-    linear_layer一层线性层将输入的dim扩展到相同的某个数,
-        |
-    split_
-
-    之后拆分,过attention再
+    在实现上,我使用的是如下顺序进行处理:
+    1. input_linear_layer一层线性层将输入的dim扩展到相同的某个数,
+    2. split_layer一层用于将输入的tensor基于dim分割为多份
+    3. attention_layer一层用于将分割好的tensor各自进入attention
+    4. concatenate_layer一层用于将这些结果按顺序再次基于dim组合在一起
+    5. output_linear_layer一层用于将组合起来的输入通过一层全连接层再组合为最初输入的dim大小.
     """
 
     def __init__(self,

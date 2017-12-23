@@ -158,8 +158,10 @@ class KeyValueAttention1DLayer(Layer, MergfuncMixin):
             sm = K.dropout(sm, self.dropout_rate)
         if isinstance(self.mergfunc, Callable):
             result = self.mergfunc(sm, Value)
+        elif isinstance(self.mergfunc, str):
+            result = getattr(self, self.mergfunc, 'batch_dot_merg')(sm, Value)
         else:
-            result = getattr(self, self.mergfunc)(sm, Value)
+            result = getattr(self, 'batch_dot_merg')(sm, Value)
         return result
 
     def call(self, inputs):
