@@ -6,7 +6,7 @@ REQUIREMETS_DEV_FILE = 'requirements_dev.txt'
 REQUIREMETS_TEST_FILE = 'requirements_test.txt'
 REQUIREMETS_FILE = 'requirements.txt'
 PROJECTNAME = 'keras_attention_block'
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 DESCRIPTION = 'simple tools'
 URL = 'https://github.com/NLP-Deeplearning-Club/keras_attention_block/'
 AUTHOR = 'hsz'
@@ -20,7 +20,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.6',
     'Topic :: Documentation :: Sphinx',
 ]
-KEYWORDS = ["keras", "deeplearning", "attention",]
+KEYWORDS = ["keras", "deeplearning", "attention"]
 PACKAGES = find_packages(exclude=['contrib', 'docs', 'test'])
 ZIP_SAFE = False
 
@@ -57,8 +57,14 @@ setup(
         'test': REQUIREMETS_TEST
     },
     zip_safe=ZIP_SAFE,
+<<<<<<< HEAD
     data_files=[('requirements',
                  ['requirements/requirements.txt',
                   'requirements/requirements_dev.txt',
                   'requirements/requirements_test.txt'])]
+=======
+    data_files=[('requirements', ['requirements/requirements.txt',
+                                  'requirements/requirements_dev.txt',
+                                  'requirements/requirements_test.txt'])]
+>>>>>>> refs/remotes/origin/dev
 )

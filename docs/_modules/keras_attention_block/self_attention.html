@@ -46,30 +46,39 @@
 <span class="kn">from</span> <span class="nn">keras</span> <span class="k">import</span> <span class="n">initializers</span>
 <span class="kn">from</span> <span class="nn">keras</span> <span class="k">import</span> <span class="n">activations</span>
 <span class="kn">from</span> <span class="nn">keras.engine.topology</span> <span class="k">import</span> <span class="n">Layer</span>
+<span class="kn">from</span> <span class="nn">.mixins</span> <span class="k">import</span> <span class="n">MergfuncMixin</span>
 
 
-<div class="viewcode-block" id="SelfAttention1DLayer"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.self_attention.SelfAttention1DLayer">[docs]</a><span class="k">class</span> <span class="nc">SelfAttention1DLayer</span><span class="p">(</span><span class="n">Layer</span><span class="p">):</span>
+<div class="viewcode-block" id="SelfAttention1DLayer"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.self_attention.SelfAttention1DLayer">[docs]</a><span class="k">class</span> <span class="nc">SelfAttention1DLayer</span><span class="p">(</span><span class="n">Layer</span><span class="p">,</span> <span class="n">MergfuncMixin</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;self-attention的特点是自己为输入,输出也是一个和自己一样shape的张量.</span>
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        similarity (Union[Callable,str]): - 指定使用的相似度计算函数,目前可选的有\</span>
 <span class="sd">        加性相似度(additive),乘性相似度(multiplicative),点乘相似度(dot_product),\</span>
 <span class="sd">        当然也可以自己写一个,只要最终输出的是一个(?,output,input_timestep)的</span>
+
+<span class="sd">        mergfunc (Union[Callable,str]): - 与similarity类似,目前可选的有:\</span>
+<span class="sd">        矩阵乘法(batch_dot_merg),逐项相乘(batch_mul_merg),逐项相加(batch_add_merg)</span>
+
 <span class="sd">        kernel_size (tuple[int,int]): - 指定使用加性相似度(additive)时才能指定,\</span>
 <span class="sd">        用于指定第一个权重的形状,各维的意义[输出的纬度,第二个权重矩阵的第一个纬度]</span>
+
 <span class="sd">        kernel_initializer (str): - 第一个权重的初始化函数,默认glorot_uniform</span>
+
 <span class="sd">        wk_kernel_initializer (str): - 第二个权重的初始化函数,默认glorot_uniform</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">similarity</span><span class="o">=</span><span class="s2">&quot;additive&quot;</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                 <span class="n">mergfunc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">dropout_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">kernel_initializer</span><span class="o">=</span><span class="s1">&#39;glorot_uniform&#39;</span><span class="p">,</span>
                  <span class="n">wk_kernel_initializer</span><span class="o">=</span><span class="s1">&#39;glorot_uniform&#39;</span><span class="p">,</span>
                  <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">similarity</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span> <span class="o">=</span> <span class="n">similarity</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">similarity</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">similarity</span> <span class="ow">in</span> <span class="p">(</span>
-                <span class="s2">&quot;multiplicative&quot;</span><span class="p">,</span> <span class="s2">&quot;dot_product&quot;</span><span class="p">,</span> <span class="s2">&quot;additive&quot;</span><span class="p">):</span>
+                <span class="s2">&quot;multiplicative&quot;</span><span class="p">,</span> <span class="s2">&quot;dot_product&quot;</span><span class="p">,</span> <span class="s2">&quot;additive&quot;</span><span class="p">,</span> <span class="s2">&quot;linear&quot;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span> <span class="o">=</span> <span class="n">similarity</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -83,10 +92,12 @@
                 <span class="s1">&#39;hyperparameter kernel_size!&#39;</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">similarity</span> <span class="o">!=</span> <span class="s2">&quot;additive&quot;</span> <span class="ow">and</span> <span class="n">kernel_size</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">kernel_size</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
                 <span class="s1">&#39;only additive similarity support &#39;</span>
                 <span class="s1">&#39;hyperparameter kernel_size!&#39;</span>
             <span class="p">)</span>
+            <span class="n">kernel_size</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span>
             <span class="n">kernel_size</span><span class="p">,</span>
@@ -95,6 +106,8 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s1">&#39;kernel_size must be a Sequence with 2 int element&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span> <span class="o">=</span> <span class="n">dropout_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span> <span class="o">=</span> <span class="n">mergfunc</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel_initializer</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kernel_initializer</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">wk_kernel_initializer</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
             <span class="n">wk_kernel_initializer</span><span class="p">)</span>
@@ -113,21 +126,18 @@
             <span class="n">r</span><span class="p">,</span> <span class="n">d_a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;kernel&#39;</span><span class="p">,</span>
                                           <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">d_a</span><span class="p">),</span>
-                                          <span class="n">initializer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_initializer</span><span class="p">,</span>
-                                          <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                                          <span class="n">initializer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_initializer</span>
+                                          <span class="p">)</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">wk_kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;wk_kernel&#39;</span><span class="p">,</span>
                 <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">d_a</span><span class="p">,</span> <span class="n">dim</span><span class="p">),</span>
-                <span class="n">initializer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wk_kernel_initializer</span><span class="p">,</span>
-                <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">initializer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wk_kernel_initializer</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span> <span class="o">==</span> <span class="s2">&quot;multiplicative&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;kernel&#39;</span><span class="p">,</span>
-                                          <span class="n">shape</span><span class="o">=</span><span class="p">(</span>
-                                              <span class="n">dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">),</span>
-                                          <span class="n">initializer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_initializer</span><span class="p">,</span>
-                                          <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                                          <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">),</span>
+                                          <span class="n">initializer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_initializer</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
 
@@ -178,18 +188,31 @@
         <span class="n">sim</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">permute_dimensions</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">sim</span></div>
 
+<div class="viewcode-block" id="SelfAttention1DLayer.linear"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.self_attention.SelfAttention1DLayer.linear">[docs]</a>    <span class="k">def</span> <span class="nf">linear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Source</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span> <span class="o">=</span> <span class="s2">&quot;batch_mul_merg&quot;</span>
+        <span class="n">Source_t</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">permute_dimensions</span><span class="p">(</span><span class="n">Source</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">Source_t</span></div>
+
     <span class="k">def</span> <span class="nf">_call_attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Source</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;self-attention就是通过相似度函数计算得的相似矩阵过softmax后与自身点乘得到</span>
 
 <span class="sd">        .. math::  A = Softmax(Similarity(Source))</span>
-<span class="sd">        .. math::  C = A \cdot Source</span>
+<span class="sd">        .. math::  C = mergfunc(A,Source)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>
             <span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="p">(</span><span class="n">Source</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">sim</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="p">)(</span><span class="n">Source</span><span class="p">)</span>
+
         <span class="n">sm</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">batch_dot</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Source</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">:</span>
+            <span class="n">sm</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Source</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">,</span> <span class="s1">&#39;batch_dot_merg&#39;</span><span class="p">)(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Source</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;batch_dot_merg&#39;</span><span class="p">)(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Source</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">result</span>
 
 <div class="viewcode-block" id="SelfAttention1DLayer.call"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.self_attention.SelfAttention1DLayer.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
@@ -203,7 +226,9 @@
 <div class="viewcode-block" id="SelfAttention1DLayer.get_config"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.self_attention.SelfAttention1DLayer.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;similarity&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="p">,</span>
+            <span class="s1">&#39;mergfunc&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mergfunc</span><span class="p">,</span>
             <span class="s1">&#39;kernel_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">,</span>
+            <span class="s1">&#39;dropout_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">,</span>
             <span class="s1">&#39;kernel_initializer&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_initializer</span><span class="p">,</span>
             <span class="s1">&#39;wk_kernel_initializer&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wk_kernel_initializer</span>
         <span class="p">}</span>
@@ -230,11 +255,14 @@
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">similarity</span><span class="o">=</span><span class="s2">&quot;additive&quot;</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                 <span class="n">mergfunc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">d_a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">dropout_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">kernel_initializer</span><span class="o">=</span><span class="s1">&#39;glorot_uniform&#39;</span><span class="p">,</span>
                  <span class="n">wk_kernel_initializer</span><span class="o">=</span><span class="s1">&#39;glorot_uniform&#39;</span><span class="p">,</span>
                  <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span> <span class="o">=</span> <span class="n">output_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d_a</span> <span class="o">=</span> <span class="n">d_a</span>
         <span class="k">if</span> <span class="n">similarity</span> <span class="o">==</span> <span class="s2">&quot;additive&quot;</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">d_a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">output_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span>
                     <span class="n">output_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
@@ -244,8 +272,9 @@
                     <span class="s1">&#39;additive similarity need  hyperparameter d_a,output_size&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">kernel_size</span> <span class="o">=</span> <span class="kc">None</span>
-
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">similarity</span><span class="o">=</span><span class="n">similarity</span><span class="p">,</span>
+                         <span class="n">mergfunc</span><span class="o">=</span><span class="n">mergfunc</span><span class="p">,</span>
+                         <span class="n">dropout_rate</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">,</span>
                          <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span>
                          <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">kernel_initializer</span><span class="p">,</span>
                          <span class="n">wk_kernel_initializer</span><span class="o">=</span><span class="n">wk_kernel_initializer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -268,7 +297,6 @@
         <span class="n">dim</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_build_w</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
-        <span class="c1"># Be sure to call this somewhere!</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">SelfAttention1DLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SelfAttention2DLayer.call"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.self_attention.SelfAttention2DLayer.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
@@ -278,7 +306,6 @@
 <span class="sd">        .. math::  C = A \cdot Source</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">input_shape</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span>
-        <span class="c1"># help(input_shape[1])</span>
         <span class="n">Source</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">inputs</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
                 <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
@@ -293,12 +320,13 @@
         <span class="k">return</span> <span class="n">result</span></div>
 
 <div class="viewcode-block" id="SelfAttention2DLayer.compute_output_shape"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.self_attention.SelfAttention2DLayer.compute_output_shape">[docs]</a>    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>  <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SelfAttention2DLayer.get_config"><a class="viewcode-back" href="../../keras_attention_block.html#keras_attention_block.self_attention.SelfAttention2DLayer.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;output_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span>
+            <span class="s2">&quot;output_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span>
+            <span class="s2">&quot;d_a&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_a</span>
         <span class="p">}</span>
         <span class="n">base_config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">base_config</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span></div></div>
